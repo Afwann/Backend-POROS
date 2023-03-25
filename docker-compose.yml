@@ -1,0 +1,50 @@
+version: '3'
+
+services:
+  web:
+    container_name: web_backend
+    image: node
+    command: sh -c "npm i && npm run start"
+    restart: always
+    working_dir: /app/server
+    ports:
+      - 3000:3000
+    volumes:
+      - .:/app:rw
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - networks
+
+  db:
+    image: mariadb:latest
+    container_name: db_backend
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    healthcheck:
+      test: "/usr/bin/mysql --user=root --password=my_cool_secret --execute \"SHOW DATABASES;\""
+      interval: 3s
+      timeout: 1s
+      retries: 5
+    environment:
+      - MARIADB_USER=user
+      - MARIADB_PASSWORD=my_cool_secret
+      - MARIADB_ROOT_PASSWORD=my_cool_secret
+      - MARIADB_DATABASE=bookshelf
+    networks:
+      - networks
+    volumes:
+      - ./server/books.sql:/books.sql:ro
+      - dbcont:/var/lib/mysql:rw
+
+networks:
+  networks:
+    driver: bridge
+    name: networks
+
+volumes:
+  .:
+    name: web_backend_volume
+  dbcont:
+    name: db_backend_volume
